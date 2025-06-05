@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "node --watch --env-file=./.env src/index.js"
+    "dev": "node --watch --env-file=./.env index.js"
   },
   "keywords": [],
   "author": "Willian Rodelo",
@@ -13,10 +13,13 @@
   "dependencies": {
     "axios": "^1.9.0",
     "cloudinary": "^2.6.1",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "exceljs": "^4.4.0",
     "express": "^5.1.0",
     "googleapis": "^149.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.15.1",
     "multer": "^2.0.0",
     "tesseract.js": "^6.0.1"
   }

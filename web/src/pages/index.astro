@@ -1,83 +1,78 @@
 ---
 import Layout from '../layouts/Layout.astro';
+export const prerender = false;
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+const api_url = import.meta.env.API_URL;
+
+const res = await fetch(`${api_url}/api/login/validate`, {
+  method: 'GET',
+  headers: {
+    'Content-Type': 'application/json',
+    cookie: Astro.request.headers.get('cookie') || '',
+  },
+  credentials: 'include',
+});
+
+let user = null;
+if (res.ok) {
+  return Astro.redirect('/scanbill');
+} else {
+  return Astro.redirect('/');
+}
 ---
 
 <Layout>
-  <div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white p-6 rounded-2xl shadow-md w-full max-w-md">
-      <h1 class="text-2xl font-bold mb-4 text-center">Subir una Imagen</h1>
+  <div
+    class="bg-white p-8 rounded-xl shadow-md w-full max-w-sm flex flex-col items-center mx-auto mt-20"
+  >
+    <h1 class="text-2xl font-bold mb-6 text-center">Iniciar sesión</h1>
 
-      <form id="uploadForm" class="flex flex-col gap-4">
-        <input
-          type="text"
-          id="nombreComercio"
-          name="nombre"
-          placeholder="Comercio"
-          class="border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
-        />
-        <input
-          type="file"
-          id="imagen"
-          name="imagen"
-          accept="image/*"
-          required
-        />
-        <button
-          type="submit"
-          class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
-          >Subir</button
-        >
-      </form>
+    <form id="login-form" class="space-y-4">
+      <input
+        type="text"
+        autocomplete="off"
+        name="username"
+        placeholder="Usuario"
+        required
+        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <input
+        type="password"
+        name="password"
+        placeholder="Contraseña"
+        required
+        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <button
+        type="submit"
+        class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        Iniciar sesión
+      </button>
+    </form>
+    <script type="module">
+      const api_url = import.meta.env.API_URL;
+      document
+        .getElementById('login-form')
+        .addEventListener('submit', async e => {
+          e.preventDefault();
+          const form = e.target;
+          const username = form.username.value;
+          const password = form.password.value;
 
-      <pre
-        id="resultado"
-        class="mt-6 bg-gray-100 p-4 rounded text-sm whitespace-pre-wrap text-wrap">
-        <div id="texto" />
-      </pre>
-    </div>
-  </div>
-  <script type="module">
-    const form = document.getElementById('uploadForm');
-    const resultado = document.getElementById('texto');
+          const res = await fetch(`${api_url}/api/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ username, password }),
+          });
 
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-
-      const fileInput = document.getElementById('imagen');
-      const nombreComercio = document.getElementById('nombreComercio').value;
-      resultado.textContent = 'Subiendo imagen...';
-      const file = fileInput.files[0];
-
-      if (!file) {
-        resultado.textContent = 'Selecciona un archivo primero.';
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('imagen', file);
-      formData.append('name', nombreComercio);
-
-      try {
-        const res = await fetch('http://localhost:3000/api/upload', {
-          method: 'POST',
-          body: formData,
+          if (res.ok) {
+            window.location.href = '/scanbill';
+          } else {
+            document.getElementById('error-msg').classList.remove('hidden');
+          }
         });
-
-        const data = await res.json();
-        if (res.ok) {
-          console.log(data);
-          resultado.textContent = 'Imagen subida correctamente: ' + data.url;
-        } else {
-          resultado.textContent = 'Error: ' + data.mensaje;
-        }
-      } catch (err) {
-        resultado.textContent = 'Error al enviar la imagen';
-        console.error(err);
-      }
-    });
-  </script>
+    </script>
+  </div>
 </Layout>

@@ -10,6 +10,10 @@ const credentials = {
   auth_provider_x509_cert_url: process.env.AUTH_PROVIDER_X509_CERT_URL,
   client_x509_cert_url: process.env.CLIENT_X509_CERT_URL,
   universe_domain: process.env.UNIVERSE_DOMAIN,
+  mongo_user: process.env.MONGO_USER,
+  mongo_pass: process.env.MONGO_PASS,
+  mongo_host: process.env.MONGO_HOST,
+  mongo_db: process.env.MONGO_DB,
 };
 
 module.exports = {

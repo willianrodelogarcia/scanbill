@@ -1,0 +1,101 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+export const prerender = false;
+
+const api_url = import.meta.env.API_URL;
+
+const res = await fetch(`${api_url}/api/login/validate`, {
+  method: 'GET',
+  headers: {
+    'Content-Type': 'application/json',
+    cookie: Astro.request.headers.get('cookie') || '',
+  },
+  credentials: 'include',
+});
+
+let user = null;
+if (res.ok) {
+  const data = await res.json();
+  user = data.user;
+} else {
+  return Astro.redirect('/');
+}
+---
+
+<Layout>
+  <div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-6 rounded-2xl shadow-md w-full max-w-md">
+      <h1 class="text-2xl font-bold mb-4 text-center">Subir una Imagen</h1>
+
+      <form id="uploadForm" class="flex flex-col gap-4">
+        <input
+          type="text"
+          id="nombreComercio"
+          name="nombre"
+          placeholder="Comercio"
+          class="border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+        <input
+          type="file"
+          id="imagen"
+          name="imagen"
+          accept="image/*"
+          required
+        />
+        <button
+          type="submit"
+          class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+          >Subir</button
+        >
+      </form>
+
+      <pre
+        id="resultado"
+        class="mt-6 bg-gray-100 p-4 rounded text-sm whitespace-pre-wrap text-wrap">
+        <div id="texto" />
+      </pre>
+    </div>
+  </div>
+  <script type="module">
+    const form = document.getElementById('uploadForm');
+    const resultado = document.getElementById('texto');
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+
+      const fileInput = document.getElementById('imagen');
+      const nombreComercio = document.getElementById('nombreComercio').value;
+      resultado.textContent = 'Subiendo imagen...';
+      const file = fileInput.files[0];
+
+      if (!file) {
+        resultado.textContent = 'Selecciona un archivo primero.';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('imagen', file);
+      formData.append('name', nombreComercio);
+
+      try {
+        const res = await fetch('http://localhost:3000/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          console.log(data);
+          resultado.textContent = 'Imagen subida correctamente: ' + data.url;
+        } else {
+          resultado.textContent = 'Error: ' + data.mensaje;
+        }
+      } catch (err) {
+        resultado.textContent = 'Error al enviar la imagen';
+        console.error(err);
+      }
+    });
+  </script>
+</Layout>
