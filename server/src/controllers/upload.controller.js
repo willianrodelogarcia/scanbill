@@ -23,11 +23,11 @@ const uploadImage = async (req, res) => {
   try {
     const {
       file,
-      body: { name },
+      body: { name, username },
     } = req;
 
     const uploadResult = await cloudinary.uploader.upload(file.path, {
-      folder: 'Bills',
+      folder: `Bills/${username}`,
       public_id: path.parse(file.originalname).name,
     });
     fs.unlink(file.path, err => {

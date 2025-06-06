@@ -3,7 +3,7 @@ interface LogoutContext {
   redirect: (path: string) => any;
 }
 
-export const POST = async ({ cookies, redirect }: LogoutContext) => {
+export const GET = async ({ cookies, redirect }: LogoutContext) => {
   cookies.delete('token', { path: '/' });
-  return redirect('/login');
+  return redirect('/');
 };

@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 export const prerender = false;
 
-const api_url = import.meta.env.API_URL;
+const api_url = import.meta.env.PUBLIC_API_URL;
 
 const res = await fetch(`${api_url}/api/login/validate`, {
   method: 'GET',
@@ -16,12 +16,11 @@ const res = await fetch(`${api_url}/api/login/validate`, {
 let user = null;
 if (res.ok) {
   return Astro.redirect('/scanbill');
-} else {
-  return Astro.redirect('/');
 }
 ---
 
 <Layout>
+  <div id="config" data-api-url={api_url}></div>
   <div
     class="bg-white p-8 rounded-xl shadow-md w-full max-w-sm flex flex-col items-center mx-auto mt-20"
   >
@@ -50,8 +49,9 @@ if (res.ok) {
         Iniciar sesión
       </button>
     </form>
+
     <script type="module">
-      const api_url = import.meta.env.API_URL;
+      const api_url = document.getElementById('config').dataset.apiUrl;
       document
         .getElementById('login-form')
         .addEventListener('submit', async e => {

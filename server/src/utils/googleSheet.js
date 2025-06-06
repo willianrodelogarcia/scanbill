@@ -11,6 +11,9 @@ const auth = new google.auth.GoogleAuth({
 });
 
 async function addRow(text, name) {
+  const { productos, total } = text;
+  const values = [];
+  values.push(...productos, { descripcion: 'Total', valor: total });
   let sheetId = null;
   const client = await auth.getClient();
   const sheets = google.sheets({ version: 'v4', auth: client });
@@ -53,7 +56,7 @@ async function addRow(text, name) {
 
   const range = `${newSheet}!A2`;
 
-  const valores = text.map(p => [p.descripcion, p.valor]);
+  const valores = values.map(p => [p.descripcion, p.valor]);
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
