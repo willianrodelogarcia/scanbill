@@ -3,6 +3,7 @@ const { userService } = require('../services');
 const {
   config: {
     JWT_SECRETS: { jwtSecret, jwtExpiry },
+    SECURE_HTTPS,
   },
 } = require('../config');
 
@@ -25,7 +26,7 @@ const login = async (req, res) => {
   res.cookie('token', token, {
     httpOnly: true,
     path: '/',
-    secure: false, // Set to true if using HTTPS
+    secure: SECURE_HTTPS, // Set to true if using HTTPS
     sameSite: 'lax',
   });
 
