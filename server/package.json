@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "node --watch --env-file=./.env index.js",
-    "start": "node --env-file=./.env index.js"
+    "dev": "node --watch --env-file=.env index.js",
+    "start": "node --env-file= .env index.js"
   },
   "keywords": [],
   "author": "Willian Rodelo",
