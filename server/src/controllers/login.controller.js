@@ -27,7 +27,7 @@ const login = async (req, res) => {
     httpOnly: true,
     path: '/',
     secure: SECURE_HTTPS, // Set to true if using HTTPS
-    sameSite: 'lax',
+    sameSite: 'None', // Adjust based on your requirements
   });
 
   res.json({ ok: true });
