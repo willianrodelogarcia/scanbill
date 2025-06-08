@@ -28,17 +28,18 @@ if (res.ok) {
   <div class="bg-gray-100 flex items-center justify-between p-4 shadow-md">
     <h1 id="username" class="text-2xl font-bold">{user.username}</h1>
 
-    <a
-      id="logoutBtn"
-      class="ml-4 text-blue-600 hover:text-blue-800 transition-colors"
-      href="/api/logout"
-    >
-      <img
-        src="/off-svgrepo-com.svg"
-        alt="Cerrar sesión"
-        class="w-6 h-6 inline-block"
-      />
-    </a>
+    <form action="/api/logout" method="GET" class="ml-4">
+      <button
+        type="submit"
+        class="bg-transparent text-blue-600 hover:text-blue-800 transition-colors p-0 border-none"
+      >
+        <img
+          src="/off-svgrepo-com.svg"
+          alt="Cerrar sesión"
+          class="w-6 h-6 inline-block"
+        />
+      </button>
+    </form>
   </div>
 </Layout>
 
