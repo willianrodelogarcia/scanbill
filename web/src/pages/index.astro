@@ -4,10 +4,9 @@ export const prerender = false;
 
 const api_url = import.meta.env.PUBLIC_API_URL;
 
-const res = await fetch(`${api_url}/api/login/validate`, {
+const res = await fetch(`${api_url}/api/validate`, {
   method: 'GET',
   headers: {
-    'Content-Type': 'application/json',
     cookie: Astro.request.headers.get('cookie') || '',
   },
   credentials: 'include',
