@@ -1,9 +1,9 @@
-interface LogoutContext {
-  cookies: { delete: (name: string, options?: { path?: string }) => void };
-  redirect: (path: string) => any;
-}
+import type { APIRoute } from 'astro';
 
-export const POST = async ({ cookies, redirect }: LogoutContext) => {
+export const POST: APIRoute = async ({ cookies, redirect }) => {
+  // Elimina la cookie "token"
   cookies.delete('token', { path: '/' });
+
+  // Redirige al inicio (puedes cambiarlo por '/login' si quieres)
   return redirect('/');
 };
