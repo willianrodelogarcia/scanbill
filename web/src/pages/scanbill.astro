@@ -8,113 +8,116 @@ const api_url = import.meta.env.PUBLIC_API_URL;
   <div id="config" data-api-url={api_url}></div>
   <div class="bg-gray-100 flex items-center justify-between p-4 shadow-md">
     <h1 id="username" class="text-2xl font-bold"></h1>
-    <form method="GET" action="/api/logout">
-      <button
-        type="submit"
-        class="ml-4 text-blue-600 hover:text-blue-800 transition-colors bg-transparent"
-      >
-        <img
-          src="/off-svgrepo-com.svg"
-          alt="Cerrar sesión"
-          class="w-6 h-6 inline-block"
-        />
-      </button>
-    </form>
-  </div>
-</Layout>
-
-<div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-  <div class="bg-white p-6 rounded-2xl shadow-md w-full max-w-md">
-    <h1 class="text-2xl font-bold mb-4 text-center">Subir una Imagen</h1>
-
-    <form id="uploadForm" class="flex flex-col gap-4">
-      <input
-        type="text"
-        id="nombreComercio"
-        autocomplete="off"
-        name="nombre"
-        placeholder="Comercio"
-        class="border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        required
+    <a
+      id="logoutBtn"
+      class="ml-4 text-blue-600 hover:text-blue-800 transition-colors"
+      href="/api/logout"
+    >
+      <img
+        src="/off-svgrepo-com.svg"
+        alt="Cerrar sesión"
+        class="w-6 h-6 inline-block"
       />
-      <input type="file" id="imagen" name="imagen" accept="image/*" required />
-      <button
-        type="submit"
-        class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
-      >
-        Subir
-      </button>
-    </form>
+    </a>
+  </div>
 
-    <pre
-      id="resultado"
-      class="mt-6 bg-gray-100 p-4 rounded text-sm whitespace-pre-wrap text-wrap">
+  <div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-6 rounded-2xl shadow-md w-full max-w-md">
+      <h1 class="text-2xl font-bold mb-4 text-center">Subir una Imagen</h1>
+
+      <form id="uploadForm" class="flex flex-col gap-4">
+        <input
+          type="text"
+          id="nombreComercio"
+          autocomplete="off"
+          name="nombre"
+          placeholder="Comercio"
+          class="border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+        <input
+          type="file"
+          id="imagen"
+          name="imagen"
+          accept="image/*"
+          required
+        />
+        <button
+          type="submit"
+          class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+        >
+          Subir
+        </button>
+      </form>
+
+      <pre
+        id="resultado"
+        class="mt-6 bg-gray-100 p-4 rounded text-sm whitespace-pre-wrap text-wrap">
         <div id="texto" />
     </pre>
+    </div>
   </div>
-</div>
 
-<script type="module">
-  const api_url = document.getElementById('config').dataset.apiUrl;
+  <script type="module">
+    const api_url = document.getElementById('config').dataset.apiUrl;
 
-  // 🔐 Validar sesión
-  const validateLogin = async () => {
-    const res = await fetch(`${api_url}/api/login/validate`, {
-      method: 'GET',
-      credentials: 'include', // ✅ IMPORTANTE: necesario para cookies cross-domain
-    });
-
-    if (!res.ok) {
-      window.location.href = '/login';
-      return;
-    }
-
-    const data = await res.json();
-    document.getElementById('username').textContent = data.user.username;
-  };
-
-  validateLogin();
-
-  // 📤 Manejo de subida de imagen
-  const form = document.getElementById('uploadForm');
-  const resultado = document.getElementById('texto');
-
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-
-    const fileInput = document.getElementById('imagen');
-    const nombreComercio = document.getElementById('nombreComercio').value;
-    resultado.textContent = 'Subiendo imagen...';
-    const file = fileInput.files[0];
-
-    if (!file) {
-      resultado.textContent = 'Selecciona un archivo primero.';
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('imagen', file);
-    formData.append('name', nombreComercio);
-    formData.append(
-      'username',
-      document.getElementById('username').textContent,
-    );
-
-    try {
-      const res = await fetch(`${api_url}/api/upload`, {
-        method: 'POST',
-        body: formData,
+    const validateLogin = async () => {
+      const res = await fetch(`${api_url}/api/login/validate`, {
+        method: 'GET',
+        credentials: 'include',
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        resultado.textContent = 'Imagen subida correctamente';
-      } else {
-        resultado.textContent = 'Error: ' + data.mensaje;
+      if (!res.ok) {
+        window.location.href = '/login';
+        return;
       }
-    } catch (err) {
-      resultado.textContent = 'Error al enviar la imagen';
-      console.error(err);
-    }
-  });
-</script>
+
+      const data = await res.json();
+      document.getElementById('username').textContent = data.user.username;
+    };
+
+    validateLogin();
+
+    const form = document.getElementById('uploadForm');
+    const resultado = document.getElementById('texto');
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+
+      const fileInput = document.getElementById('imagen');
+      const nombreComercio = document.getElementById('nombreComercio').value;
+      resultado.textContent = 'Subiendo imagen...';
+      const file = fileInput.files[0];
+
+      if (!file) {
+        resultado.textContent = 'Selecciona un archivo primero.';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('imagen', file);
+      formData.append('name', nombreComercio);
+      formData.append(
+        'username',
+        document.getElementById('username').textContent,
+      );
+
+      try {
+        const res = await fetch(`${api_url}/api/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          resultado.textContent = 'Imagen subida correctamente';
+        } else {
+          resultado.textContent = 'Error: ' + data.mensaje;
+        }
+      } catch (err) {
+        resultado.textContent = 'Error al enviar la imagen';
+        console.error(err);
+      }
+    });
+  </script>
+</Layout>
