@@ -7,11 +7,12 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
+      "name": "Api ScanBill",
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${file}"
+      "program": "${workspaceFolder}/server/index.js",
+      "envFile": "${workspaceFolder}/server/.env"
     }
   ]
 }
