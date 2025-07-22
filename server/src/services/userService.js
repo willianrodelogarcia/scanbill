@@ -14,7 +14,6 @@ const findOneUser = async username => {
 };
 
 const findOneAndUpdate = async ({ id, data }) => {
-  console.log(data);
   return await User.findByIdAndUpdate(
     { _id: id },
     { $set: data },
@@ -25,9 +24,14 @@ const findOneAndUpdate = async ({ id, data }) => {
   );
 };
 
+const findById = async id => {
+  return await User.findById(id);
+};
+
 module.exports = {
   createUser,
   findUser,
   findOneAndUpdate,
   findOneUser,
+  findById,
 };

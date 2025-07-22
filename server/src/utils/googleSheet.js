@@ -7,7 +7,10 @@ const {
 
 const auth = new google.auth.GoogleAuth({
   credentials: keys,
-  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  scopes: [
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/drive',
+  ],
 });
 
 async function addRow(text, name) {

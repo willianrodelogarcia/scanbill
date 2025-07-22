@@ -18,4 +18,24 @@ const createOneUser = async (req, res) => {
   }
 };
 
-module.exports = { createOneUser };
+const registerUser = async (req, res) => {
+  const { username, email, password } = req.body;
+  try {
+    const existingUser = await userService.findOneUser(username);
+    if (existingUser) {
+      return res.status(409).json({ message: 'Username already exists' });
+    }
+    const newUser = await userService.createUser({
+      username,
+      email,
+      password,
+      googleId: null,
+    });
+    res.status(201).json(newUser);
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+module.exports = { createOneUser, registerUser };

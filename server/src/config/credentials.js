@@ -16,6 +16,13 @@ const credentials = {
   mongo_db: process.env.MONGO_DB,
 };
 
+const authCredentials = {
+  googleClientId: process.env.GOOGLE_CLIENT_ID,
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  googleRedirectUri: process.env.GOOGLE_REDIRECT_URI,
+};
+
 module.exports = {
   credentials,
+  authCredentials,
 };

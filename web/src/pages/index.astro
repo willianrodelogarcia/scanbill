@@ -49,6 +49,21 @@ if (res.ok) {
       </button>
     </form>
 
+    <div class="mt-6 text-center">
+      <span class="text-gray-500">o</span>
+    </div>
+
+    <div class="mt-4">
+      <a
+        href="http://localhost:4000/auth/google"
+        class="w-full inline-block text-center bg-red-500 text-white p-3 rounded-xl hover:bg-red-600 transition"
+      >
+        Iniciar con Google
+      </a>
+    </div>
+
+    <p id="status" class="mt-4 text-center text-red-500"></p>
+
     <script type="module">
       const api_url = document.getElementById('config').dataset.apiUrl;
       document
