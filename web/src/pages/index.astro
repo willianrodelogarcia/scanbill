@@ -29,8 +29,8 @@ if (res.ok) {
       <input
         type="text"
         autocomplete="off"
-        name="username"
-        placeholder="Usuario"
+        name="email"
+        placeholder="Email"
         required
         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
@@ -55,7 +55,7 @@ if (res.ok) {
 
     <div class="mt-4">
       <a
-        href="http://localhost:4000/auth/google"
+        href=`${api_url}/auth/google`
         class="w-full inline-block text-center bg-red-500 text-white p-3 rounded-xl hover:bg-red-600 transition"
       >
         Iniciar con Google
@@ -64,27 +64,54 @@ if (res.ok) {
 
     <p id="status" class="mt-4 text-center text-red-500"></p>
 
+    <div class="mt-6 text-center text-sm">
+      <a href="/register" class="text-blue-600 hover:underline"
+        >¿No tienes una cuenta? Registrate aqui</a
+      >
+    </div>
+
     <script type="module">
       const api_url = document.getElementById('config').dataset.apiUrl;
+      async function checkSession() {
+        const res = await fetch(`${api_url}/auth/me`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated) {
+            window.location.href = '/scanbill';
+          }
+        }
+      }
+
+      checkSession();
+
       document
         .getElementById('login-form')
         .addEventListener('submit', async e => {
           e.preventDefault();
+
           const form = e.target;
-          const username = form.username.value;
+          const email = form.email.value;
           const password = form.password.value;
 
-          const res = await fetch(`${api_url}/api/login`, {
+          const res = await fetch(`${api_url}/auth/login`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+            },
             credentials: 'include',
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify({ email, password }),
           });
+
+          const data = await res.json();
 
           if (res.ok) {
             window.location.href = '/scanbill';
           } else {
-            document.getElementById('error-msg').classList.remove('hidden');
+            document.getElementById('status').textContent =
+              data.message || 'Error al iniciar sesión';
           }
         });
     </script>

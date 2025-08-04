@@ -3,24 +3,44 @@ const { google } = require('googleapis');
 const {
   config: { googleSheetsConst },
   credentials: { credentials: keys },
+  authCredentials,
 } = require('../config');
 
-const auth = new google.auth.GoogleAuth({
-  credentials: keys,
-  scopes: [
-    'https://www.googleapis.com/auth/spreadsheets',
-    'https://www.googleapis.com/auth/drive',
-  ],
-});
+const { userService } = require('../services');
 
-async function addRow(text, name) {
+async function addRow({ text, comercio, user, email, documentId }) {
+  let spreadsheetId;
   const { productos, total } = text;
   const values = [...productos, { descripcion: 'Total', valor: total }];
-  const client = await auth.getClient();
-  const sheets = google.sheets({ version: 'v4', auth: client });
-  const spreadsheetId = googleSheetsConst.spreadsheetId;
+  const oauth2Client = new google.auth.OAuth2(
+    authCredentials.googleClientId,
+    authCredentials.googleClientSecret,
+    authCredentials.googleRedirectUri,
+  );
 
+  oauth2Client.setCredentials({
+    access_token: user.access_token,
+    refresh_token: user.refresh_token,
+    scope: user.scope,
+    token_type: user.token_type,
+    expiry_date: user.expiry_date,
+  });
+
+  const drive = google.drive({ version: 'v3', auth: oauth2Client });
+  const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+
+  const userEmail = await userService.findOneGoogle({ email });
+  if (userEmail.google.sheets.length > 0 && documentId) {
+    spreadsheetId = userEmail.google.sheets
+      .filter(sheetId => sheetId.spreadsheetId === documentId)
+      .map(sheet => sheet.spreadsheetId)[0];
+  }
   const newSheet = `Facturas_${new Date().toISOString().slice(0, 10)}`;
+
+  if (!spreadsheetId) {
+    spreadsheetId = await createUserSheet({ drive, newSheet, email, comercio });
+  }
+
   const sheetId = await ensureSheetExists(sheets, spreadsheetId, newSheet);
   const startCol = await findNextFreeColumn(sheets, spreadsheetId, newSheet);
   const colLetter = columnToLetter(startCol);
@@ -29,7 +49,7 @@ async function addRow(text, name) {
     spreadsheetId,
     range: `${newSheet}!${colLetter}1`,
     valueInputOption: 'USER_ENTERED',
-    resource: { values: [[name]] },
+    resource: { values: [[comercio]] },
   });
 
   const data = values.map(p => [p.descripcion, p.valor]);
@@ -47,9 +67,13 @@ async function addRow(text, name) {
     sheetId,
     count: data.length,
     startColumnIndex: startCol - 1,
+    sheets,
   });
 
-  console.log('✅ Factura añadida con solo encabezado:', name);
+  console.log('✅ Factura añadida con solo encabezado:', comercio);
+  return {
+    newSheet,
+  };
 }
 
 async function ensureSheetExists(sheets, spreadsheetId, sheetName) {
@@ -113,10 +137,8 @@ async function applyStyleTable({
   sheetId,
   count,
   startColumnIndex,
+  sheets,
 }) {
-  const client = await auth.getClient();
-  const sheets = google.sheets({ version: 'v4', auth: client });
-
   const endCol = startColumnIndex + 2;
   const endRow = count + 1; // +1 por la fila del título
 
@@ -241,6 +263,40 @@ function border() {
     width: 1,
     color: { red: 0, green: 0, blue: 0 },
   };
+}
+
+async function createUserSheet({ drive, newSheet, email, comercio }) {
+  const fileRes = await drive.files.create({
+    resource: {
+      name: newSheet,
+      mimeType: 'application/vnd.google-apps.spreadsheet',
+    },
+    fields: 'id',
+  });
+
+  const spreadsheetId = fileRes.data.id;
+
+  await userService.findAndUpdateByEmail({
+    email,
+    spreadsheetId,
+    comercio,
+    newSheet,
+  });
+
+  console.log(`✅ Spreadsheet creado para usuario: ${spreadsheetId}`);
+  return spreadsheetId;
+}
+
+// Share the document with the user's email
+async function shareDocument(drive, spreadsheetId, email) {
+  await drive.permissions.create({
+    fileId: spreadsheetId,
+    requestBody: {
+      role: 'writer',
+      type: 'user',
+      emailAddress: email,
+    },
+  });
 }
 
 module.exports = { addRow };

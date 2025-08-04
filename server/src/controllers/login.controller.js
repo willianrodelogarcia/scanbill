@@ -5,8 +5,10 @@ const {
   config: {
     JWT_SECRETS: { jwtSecret, jwtExpiry },
     SECURE_HTTPS,
+    urls: { frontend_url },
   },
 } = require('../config');
+const { google } = require('googleapis');
 
 const login = async (req, res) => {
   const { username, password } = req.body;
@@ -61,18 +63,40 @@ const handleGoogleCallback = async (req, res) => {
 
   const { data, tokens } = await getAccessToken(code);
 
-  let user = await User.findOne({ email: data.email });
+  let user = await userService.findOneGoogle({ email: data.email });
   if (!user) {
     user = await userService.createUser({
-      username: data.name,
+      userName: data.name,
       email: data.email,
       googleId: data.id,
       password: null,
+      google: {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        scope: tokens.scope,
+        token_type: tokens.token_type,
+        expiry_date: tokens.expiry_date,
+        sheets: [],
+      },
+    });
+  } else {
+    user = await userService.updateGoogleUser(user._id, {
+      googleId: data.id,
+      userName: data.name,
+      email: data.email,
+      google: {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        scope: tokens.scope,
+        token_type: tokens.token_type,
+        expiry_date: tokens.expiry_date,
+        sheets: user.google.sheets || [],
+      },
     });
   }
   req.session.tokens = tokens;
   req.session.userId = user._id;
-  res.redirect('http://localhost:4321/');
+  res.redirect(`${frontend_url}/`);
 };
 
 const getTokenFromSession = (req, res) => {
@@ -88,8 +112,18 @@ const loginUser = async (req, res) => {
   if (!user || !user.password) {
     return res.status(404).json({ message: 'No user found' });
   }
+  if (user.password !== password) {
+    return res.status(401).json({ message: 'Invalid password' });
+  }
 
   req.session.userId = user._id;
+  req.session.tokens = {
+    access_token: user.google?.access_token,
+    refresh_token: user.google?.refresh_token,
+    scope: user.google?.scope,
+    token_type: user.google?.token_type,
+    expiry_date: user.google?.expiry_date,
+  };
   res.json({
     message: 'Inicio de sesión exitoso',
     user: { name: user.name, email },
@@ -106,8 +140,10 @@ const validateLoginUser = async (req, res) => {
 
   res.json({
     authenticated: true,
+    hasGoogleAccess: !!user.google?.access_token,
+    provider: user.google?.access_token ? 'google' : 'local',
     user: {
-      name: user.name,
+      name: user.userName,
       email: user.email,
     },
   });

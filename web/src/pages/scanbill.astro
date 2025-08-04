@@ -6,115 +6,206 @@ const api_url = import.meta.env.PUBLIC_API_URL;
 
 <Layout>
   <div id="config" data-api-url={api_url}></div>
-  <div class="bg-gray-100 flex items-center justify-between p-4 shadow-md">
-    <h1 id="username" class="text-2xl font-bold"></h1>
+
+  <header
+    id="user-header"
+    class="w-full bg-gray-100 px-6 py-4 shadow-md flex justify-between items-center hidden"
+  >
+    <span class="text-gray-800 font-medium" id="user-name"></span>
     <form method="POST" action="/api/logout">
       <button
         type="submit"
-        class="ml-4 text-blue-600 hover:text-blue-800 transition-colors bg-transparent"
+        class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
       >
-        <img
-          src="/off-svgrepo-com.svg"
-          alt="Cerrar sesión"
-          class="w-6 h-6 inline-block"
-        />
+        Cerrar sesión
       </button>
     </form>
-  </div>
-</Layout>
+  </header>
 
-<div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-  <div class="bg-white p-6 rounded-2xl shadow-md w-full max-w-md">
-    <h1 class="text-2xl font-bold mb-4 text-center">Subir una Imagen</h1>
+  <main
+    id="main"
+    class="max-w-2xl mx-auto bg-white p-6 rounded-2xl shadow-lg hidden mt-6"
+  >
+    <h1 class="text-2xl font-bold mb-6 text-center">Subir imagen</h1>
 
-    <form id="uploadForm" class="flex flex-col gap-4">
+    <form id="upload-form" class="space-y-4">
       <input
         type="text"
-        id="nombreComercio"
+        id="nombre-comercio"
         autocomplete="off"
         name="nombre"
         placeholder="Comercio"
-        class="border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
         required
       />
-      <input type="file" id="imagen" name="imagen" accept="image/*" required />
+
+      <select
+        class="border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+        id="sheetSelector"
+      >
+      </select>
+
+      <input
+        type="file"
+        name="imagen"
+        id="imagen"
+        accept="image/*"
+        required
+        class="w-full file:border file:border-gray-300 file:px-4 file:py-2 file:rounded-lg"
+      />
+
       <button
         type="submit"
-        class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+        class="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition"
       >
-        Subir
+        Subir y procesar imagen
       </button>
     </form>
 
-    <pre
-      id="resultado"
-      class="mt-6 bg-gray-100 p-4 rounded text-sm whitespace-pre-wrap text-wrap">
-        <div id="texto" />
-    </pre>
+    <p id="status" class="mt-4 text-center text-sm text-gray-700"></p>
+
+    <div id="result" class="mt-6 bg-gray-100 p-4 rounded-lg hidden">
+      <h2 class="text-lg font-semibold mb-2">Texto extraído:</h2>
+      <pre id="extracted-text" class="whitespace-pre-wrap text-gray-800"></pre>
+    </div>
+  </main>
+
+  <!-- Vista alternativa cuando no hay Google conectado -->
+  <div
+    id="google-required"
+    class="max-w-md mx-auto bg-white p-6 mt-20 rounded-xl text-center hidden"
+  >
+    <p class="text-lg text-red-600 font-semibold mb-4">
+      Tu cuenta no está conectada a Google
+    </p>
+    <p class="text-gray-700 mb-4">
+      Para poder guardar los resultados en Google Sheets, necesitas autorizar
+      acceso a tu cuenta de Google.
+    </p>
+    <a
+      href=`${api_url}/auth/google`
+      class="bg-red-500 text-white py-2 px-4 rounded-xl hover:bg-red-600 transition"
+    >
+      Conectar cuenta de Google
+    </a>
   </div>
-</div>
 
-<script type="module">
-  const api_url = document.getElementById('config').dataset.apiUrl;
+  <script type="module">
+    const api_url = document.getElementById('config').dataset.apiUrl;
+    const mainSection = document.getElementById('main');
+    const googleRequiredSection = document.getElementById('google-required');
+    const userHeader = document.getElementById('user-header');
+    const userNameSpan = document.getElementById('user-name');
 
-  // 🔐 Validar sesión
-  const validateLogin = async () => {
-    const res = await fetch(`${api_url}/api/login/validate`, {
-      method: 'GET',
-      credentials: 'include', // ✅ IMPORTANTE: necesario para cookies cross-domain
-    });
+    let userName = '';
+    let userEmail = '';
 
-    if (!res.ok) {
-      window.location.href = '/login';
-      return;
-    }
-
-    const data = await res.json();
-    document.getElementById('username').textContent = data.user.username;
-  };
-
-  validateLogin();
-
-  // 📤 Manejo de subida de imagen
-  const form = document.getElementById('uploadForm');
-  const resultado = document.getElementById('texto');
-
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-
-    const fileInput = document.getElementById('imagen');
-    const nombreComercio = document.getElementById('nombreComercio').value;
-    resultado.textContent = 'Subiendo imagen...';
-    const file = fileInput.files[0];
-
-    if (!file) {
-      resultado.textContent = 'Selecciona un archivo primero.';
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('imagen', file);
-    formData.append('name', nombreComercio);
-    formData.append(
-      'username',
-      document.getElementById('username').textContent,
-    );
-
-    try {
-      const res = await fetch(`${api_url}/api/upload`, {
+    async function checkAuthAndGoogle() {
+      const res = await fetch(`${api_url}/auth/me`, {
         method: 'POST',
-        body: formData,
+        credentials: 'include',
       });
 
       const data = await res.json();
-      if (res.ok) {
-        resultado.textContent = 'Imagen subida correctamente';
-      } else {
-        resultado.textContent = 'Error: ' + data.mensaje;
+
+      if (!res.ok || !data.authenticated) {
+        window.location.href = '/';
+        return;
       }
-    } catch (err) {
-      resultado.textContent = 'Error al enviar la imagen';
-      console.error(err);
+      userName = data.user.name;
+      userEmail = data.user.email;
+      userNameSpan.textContent = `👋 Hola, ${data.user.name}`;
+      userHeader.classList.remove('hidden');
+
+      if (data.hasGoogleAccess) {
+        mainSection.classList.remove('hidden');
+      } else {
+        googleRequiredSection.classList.remove('hidden');
+      }
     }
-  });
-</script>
+
+    async function getListSheets() {
+      const res = await fetch(`${api_url}/api/upload/sheets`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        console.error('Error al obtener las hojas de cálculo');
+        return [];
+      }
+
+      const data = await res.json();
+
+      return data.sheets || [];
+    }
+
+    checkAuthAndGoogle();
+
+    const listOfSheets = await getListSheets();
+
+    if (listOfSheets.length > 0) {
+      const options = listOfSheets.map(
+        sheet =>
+          `<option value="${sheet.spreadsheetId}">${sheet.filename}</option>`,
+      );
+      options.unshift(
+        '<option value="">Selecciona una hoja de cálculo</option>',
+      );
+      document.getElementById('sheetSelector').innerHTML = options.join('');
+    } else {
+      document.getElementById('sheetSelector').innerHTML =
+        '<option value="">No hay hojas disponibles</option>';
+    }
+
+    const form = document.getElementById('upload-form');
+    const statusEl = document.getElementById('status');
+    const resultBox = document.getElementById('result');
+    const resultText = document.getElementById('extracted-text');
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const nombreComercio = document.getElementById('nombre-comercio').value;
+      const fileInput = document.getElementById('imagen');
+      const documentId = document.querySelector('#sheetSelector').value;
+      if (documentId === 'No hay hojas disponibles') {
+        documentId = '';
+      }
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      statusEl.textContent = 'Subiendo imagen y procesando...';
+      resultBox.classList.add('hidden');
+
+      const formData = new FormData();
+      formData.append('imagen', file);
+      formData.append('username', userName);
+      formData.append('comercio', nombreComercio);
+      formData.append('email', userEmail);
+      formData.append('documentId', documentId);
+
+      try {
+        const res = await fetch(`${api_url}/api/upload`, {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          const fileName = data.newSheet;
+          const title = data.comercio;
+          statusEl.textContent = 'Imagen procesada correctamente.';
+          resultText.textContent =
+            `Archivo creado: ${fileName} ✅` || 'No se encontró texto.';
+          resultBox.classList.remove('hidden');
+        } else {
+          statusEl.textContent = data.message || 'Error al procesar la imagen.';
+        }
+      } catch (err) {
+        statusEl.textContent = 'Error al conectar con el servidor.';
+      }
+    });
+  </script>
+</Layout>

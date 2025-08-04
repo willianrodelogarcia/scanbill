@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { readText } = require('../utils/readText');
+const { userService } = require('../services');
 
 const uploadImage = async (req, res) => {
   if (
@@ -21,9 +22,10 @@ const uploadImage = async (req, res) => {
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
   try {
+    const user = req.session.tokens;
     const {
       file,
-      body: { name, username },
+      body: { comercio, username, email, documentId },
     } = req;
 
     const uploadResult = await cloudinary.uploader.upload(file.path, {
@@ -40,12 +42,36 @@ const uploadImage = async (req, res) => {
 
     const text = await readText(uploadResult.url);
 
-    await addRow(text, name);
+    const { newSheet } = await addRow({
+      text,
+      comercio,
+      user,
+      email,
+      documentId,
+    });
 
-    res.json({ url: uploadResult.url });
+    res.json({ newSheet, comercio });
   } catch (error) {
     console.error('Error uploading image:', error);
     throw new Error('Image upload failed');
   }
 };
-module.exports = { uploadImage };
+
+const listOfSheets = async (req, res) => {
+  const { userId } = req.session;
+  if (!userId) {
+    return res.status(401).json({ error: 'User not authenticated' });
+  }
+  try {
+    const user = await userService.findById(userId);
+    if (!user || !user.google || !user.google.sheets) {
+      return res.status(404).json({ error: 'No sheets found for this user' });
+    }
+    res.json({ sheets: user.google.sheets });
+  } catch (error) {
+    console.error('Error fetching sheets:', error);
+    res.status(500).json({ error: 'Failed to fetch sheets' });
+  }
+};
+
+module.exports = { uploadImage, listOfSheets };

@@ -11,20 +11,20 @@ export const prerender = false;
   >
     <h1 class="text-2xl font-bold text-center mb-6">Registro</h1>
 
-    <form id="register-form" class="space-y-4">
+    <form id="register-form" class="space-y-4 hidden">
       <input
         type="text"
-        name="username"
-        placeholder="Usuario"
-        autocomplete="off"
+        name="userName"
+        placeholder="Nombre completo"
         required
+        autocomplete="off"
         class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
+
       <input
         type="email"
         name="email"
-        placeholder="Email"
-        autocomplete="off"
+        placeholder="Correo electrónico"
         required
         class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
@@ -32,8 +32,7 @@ export const prerender = false;
       <input
         type="password"
         name="password"
-        placeholder="Password"
-        autocomplete="off"
+        placeholder="Contraseña"
         required
         class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
@@ -42,23 +41,88 @@ export const prerender = false;
         type="submit"
         class="w-full bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition"
       >
-        Registar
+        Registrarse
       </button>
     </form>
+
+    <div class="mt-6 text-center">
+      <span class="text-gray-500">o</span>
+    </div>
+
+    <div id="google-section" class="mt-4 text-center">
+      <a
+        href=`${api_url}/auth/google`
+        class="w-full inline-block text-center bg-red-500 text-white p-3 rounded-xl hover:bg-red-600 transition"
+      >
+        Registrarse con Google
+      </a>
+    </div>
+
+    <p id="status" class="mt-4 text-center text-red-500"></p>
+
+    <div class="mt-6 text-center text-sm">
+      <a href="/" class="text-blue-600 hover:underline"
+        >¿Ya tienes cuenta? Inicia sesión</a
+      >
+    </div>
 
     <p id="response" class="mt-4 text-green-600 text-center"></p>
   </div>
   <script>
-    const configElem = document.getElementById('config');
-    const api_url = configElem ? configElem.dataset.apiUrl : '';
-    const registerForm = document.getElementById('register-form');
-    if (registerForm) {
-      registerForm.addEventListener('submit', async e => {
+    const configElement = document.getElementById('config');
+    const api_url = configElement ? configElement.dataset.apiUrl : '';
+    async function checkIfLoggedInWithGoogle() {
+      try {
+        const res = await fetch(`${api_url}/auth/me`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+        const data = await res.json();
+
+        if (res.ok && data.authenticated && data.provider === 'google') {
+          const registerForm = document.getElementById('register-form');
+          if (registerForm) {
+            registerForm.classList.add('hidden');
+          }
+          const googleSection = document.getElementById('google-section');
+          if (googleSection) {
+            googleSection.innerHTML = `
+              <p class="text-green-600 mb-4 font-semibold">Ya has iniciado sesión con Google</p>
+              <a href="/scanbill" class="text-blue-600 underline">Ir al Dashboard</a>
+            `;
+          }
+        } else {
+          const registerForm = document.getElementById('register-form');
+          if (registerForm) {
+            registerForm.classList.remove('hidden');
+          }
+        }
+      } catch (err) {
+        const registerForm = document.getElementById('register-form');
+        if (registerForm) {
+          registerForm.classList.remove('hidden');
+        }
+      }
+    }
+
+    checkIfLoggedInWithGoogle();
+
+    const registerFormElement = document.getElementById('register-form');
+    if (registerFormElement) {
+      registerFormElement.addEventListener('submit', async e => {
         e.preventDefault();
+
         const form = e.target as HTMLFormElement;
-        if (!form) return;
-        const name = (form.elements.namedItem('username') as HTMLInputElement)
-          ?.value;
+        if (!form) {
+          const statusElement = document.getElementById('status');
+          if (statusElement) {
+            statusElement.textContent = 'Error: Formulario no encontrado.';
+          }
+          return;
+        }
+        const userName = (
+          form.elements.namedItem('userName') as HTMLInputElement
+        )?.value;
         const email = (form.elements.namedItem('email') as HTMLInputElement)
           ?.value;
         const password = (
@@ -67,18 +131,20 @@ export const prerender = false;
 
         const res = await fetch(`${api_url}/api/user/register`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ name, email, password }),
+          body: JSON.stringify({ userName, email, password }),
         });
 
         const data = await res.json();
-        const responseElem = document.getElementById('response');
-        if (responseElem) {
-          responseElem.textContent =
-            data.message || 'Datos guardados correctamente';
+
+        if (res.ok) {
+          window.location.href = '/scanbill';
+        } else {
+          const statusElement = document.getElementById('status');
+          if (statusElement) {
+            statusElement.textContent = data.message || 'Error al registrarse';
+          }
         }
       });
     }
