@@ -131,6 +131,7 @@ const loginUser = async (req, res) => {
 };
 
 const validateLoginUser = async (req, res) => {
+  console.log(req.session);
   if (!req.session.userId) {
     return res.status(401).json({ authenticated: false });
   }
