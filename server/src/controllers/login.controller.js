@@ -136,7 +136,10 @@ const validateLoginUser = async (req, res) => {
   }
 
   const user = await userService.findById(req.session.userId);
-  if (!user) return res.status(401).json({ authenticated: false });
+  if (!user)
+    return res
+      .status(401)
+      .json({ authenticated: false, message: 'User not found' });
 
   res.json({
     authenticated: true,
