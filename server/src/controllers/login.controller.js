@@ -96,7 +96,15 @@ const handleGoogleCallback = async (req, res) => {
   }
   req.session.tokens = tokens;
   req.session.userId = user._id;
-  res.redirect(`${frontend_url}/`);
+  console.log(req.session);
+  req.session.save(err => {
+    if (err) {
+      console.error('Error saving session:', err);
+      return res.status(500).send('Error saving session');
+    }
+
+    res.redirect(`${frontend_url}/`);
+  });
 };
 
 const getTokenFromSession = (req, res) => {
