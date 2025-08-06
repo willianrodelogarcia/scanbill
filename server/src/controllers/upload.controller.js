@@ -22,7 +22,10 @@ const uploadImage = async (req, res) => {
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
   try {
-    const user = req.session.tokens;
+    const userSession = await userService.findBySessionId(
+      req.cookies.sessionId,
+    );
+    const user = userSession.google;
     const {
       file,
       body: { comercio, username, email, documentId },
@@ -58,12 +61,12 @@ const uploadImage = async (req, res) => {
 };
 
 const listOfSheets = async (req, res) => {
-  const { userId } = req.session;
-  if (!userId) {
+  const { _id } = await userService.findBySessionId(req.cookies.sessionId);
+  if (!_id) {
     return res.status(401).json({ error: 'User not authenticated' });
   }
   try {
-    const user = await userService.findById(userId);
+    const user = await userService.findById(_id);
     if (!user || !user.google || !user.google.sheets) {
       return res.status(404).json({ error: 'No sheets found for this user' });
     }
