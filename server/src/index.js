@@ -9,7 +9,7 @@ const {
   config: { urls },
 } = require('./config');
 const cookieParser = require('cookie-parser');
-const session = require('cookie-session');
+const session = require('express-session');
 const cors = require('cors');
 const connect = require('./connections/db');
 const app = express();
@@ -32,9 +32,9 @@ const start = async () => {
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
-        maxAge: 1000 * 60 * 60 * 24, // 1 día
+        secure: true, // importante para producción
+        sameSite: 'none', // para cross-origin entre Vercel y Render
+        maxAge: 1000 * 60 * 60 * 24,
       },
     }),
   );
