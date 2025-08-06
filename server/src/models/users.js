@@ -1,5 +1,3 @@
-const { auth } = require('googleapis/build/src/apis/abusiveexperiencereport');
-const { sheets } = require('googleapis/build/src/apis/sheets');
 const mongoose = require('mongoose');
 
 const SheetSchema = new mongoose.Schema({

@@ -8,10 +8,12 @@ const {
 const {
   config: { urls },
 } = require('./config');
+const { credentials } = require('./config/credentials');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const cors = require('cors');
 const connect = require('./connections/db');
+const MongoStore = require('connect-mongo');
 const app = express();
 const port = 3000;
 
@@ -30,10 +32,17 @@ const start = async () => {
       secret: process.env.SESSION_SECRET,
       resave: false,
       saveUninitialized: false,
+      store: MongoStore.create({
+        mongoUrl: `mongodb+srv://${credentials.mongo_user}:${credentials.mongo_pass}@${credentials.mongo_host}/${credentials.mongo_db}`,
+        collectionName: 'sessions',
+        autoRemove: 'interval',
+        autoRemoveInterval: 10,
+        stringify: false,
+      }),
       cookie: {
         httpOnly: true,
-        secure: true, // importante para producción
-        sameSite: 'none', // para cross-origin entre Vercel y Render
+        secure: true,
+        sameSite: 'none',
         maxAge: 1000 * 60 * 60 * 24,
       },
     }),

@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { userService } = require('../services');
+const { userService, sessionService } = require('../services');
 const { getAuthUrl, getAccessToken } = require('../utils/googleAuth');
 const {
   config: {
@@ -94,9 +94,11 @@ const handleGoogleCallback = async (req, res) => {
       },
     });
   }
+
+  await sessionService.deleteSessionById(user._id);
+
   req.session.tokens = tokens;
   req.session.userId = user._id;
-  console.log(req.session);
   req.session.save(err => {
     if (err) {
       console.error('Error saving session:', err);
@@ -124,6 +126,8 @@ const loginUser = async (req, res) => {
     return res.status(401).json({ message: 'Invalid password' });
   }
 
+  await sessionService.deleteSessionById(user._id);
+
   req.session.userId = user._id;
   req.session.tokens = {
     access_token: user.google?.access_token,
@@ -139,26 +143,42 @@ const loginUser = async (req, res) => {
 };
 
 const validateLoginUser = async (req, res) => {
-  console.log(req.session);
-  if (!req.session.userId) {
-    return res.status(401).json({ authenticated: false });
+  try {
+    const sessionId = req.sessionID;
+    const sessionRaw = await sessionService.findSessionById(sessionId);
+    if (!sessionRaw || !sessionRaw.session) {
+      return res
+        .status(401)
+        .json({ authenticated: false, message: 'Session not found' });
+    }
+
+    sessionData = sessionRaw.session;
+    if (!sessionData || !sessionData.userId) {
+      return res
+        .status(401)
+        .json({ authenticated: false, message: 'Session data invalid' });
+    }
+    const user = await userService.findById(sessionData.userId);
+    if (!user)
+      return res
+        .status(401)
+        .json({ authenticated: false, message: 'User not found' });
+
+    res.json({
+      authenticated: true,
+      hasGoogleAccess: !!user.google?.access_token,
+      provider: user.google?.access_token ? 'google' : 'local',
+      user: {
+        name: user.userName,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.error('Error validating login user:', error);
+    res
+      .status(500)
+      .json({ authenticated: false, message: 'Internal server error' });
   }
-
-  const user = await userService.findById(req.session.userId);
-  if (!user)
-    return res
-      .status(401)
-      .json({ authenticated: false, message: 'User not found' });
-
-  res.json({
-    authenticated: true,
-    hasGoogleAccess: !!user.google?.access_token,
-    provider: user.google?.access_token ? 'google' : 'local',
-    user: {
-      name: user.userName,
-      email: user.email,
-    },
-  });
 };
 
 const logoutUser = (req, res) => {
