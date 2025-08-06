@@ -12,14 +12,12 @@ const api_url = import.meta.env.PUBLIC_API_URL;
     class="w-full bg-gray-100 px-6 py-4 shadow-md justify-between items-center hidden flex"
   >
     <span class="text-gray-800 font-medium" id="user-name"></span>
-    <form method="POST" action="/api/logout">
-      <button
-        type="submit"
-        class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
-      >
-        Cerrar sesión
-      </button>
-    </form>
+    <button
+      id="logout-btn"
+      class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition-colors duration-200"
+    >
+      Cerrar sesión
+    </button>
   </header>
 
   <main
@@ -206,5 +204,19 @@ const api_url = import.meta.env.PUBLIC_API_URL;
         statusEl.textContent = 'Error al conectar con el servidor.';
       }
     });
+    document
+      .getElementById('logout-btn')
+      ?.addEventListener('click', async () => {
+        const res = await fetch(`${api_url}/auth/logout`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+
+        if (res.ok) {
+          window.location.href = '/';
+        } else {
+          alert('Error al cerrar sesión');
+        }
+      });
   </script>
 </Layout>

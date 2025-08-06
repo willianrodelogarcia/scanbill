@@ -239,9 +239,23 @@ const validateLoginUser = async (req, res) => {
   }
 };
 
-const logoutUser = (req, res) => {
-  req.session = null;
-  res.json({ message: 'Logout successful' });
+const logoutUser = async (req, res) => {
+  const sessionId = req.cookies.sessionId;
+
+  const userSession = await userService.findBySessionId(sessionId);
+
+  if (sessionId) {
+    await sessionService.deleteSessionById(userSession._id);
+    await userService.addSessionIdToUser(userSession._id, '');
+
+    res.clearCookie('sessionId', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+    });
+  }
+
+  res.status(200).json({ message: 'Logout successful' });
 };
 
 module.exports = {
