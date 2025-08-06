@@ -74,7 +74,7 @@ if (res.ok) {
       const api_url = document.getElementById('config').dataset.apiUrl;
       async function checkSession() {
         const res = await fetch(`${api_url}/auth/me`, {
-          method: 'POST',
+          method: 'GET',
           credentials: 'include',
         });
         if (res.ok) {

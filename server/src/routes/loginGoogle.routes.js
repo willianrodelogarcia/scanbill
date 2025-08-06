@@ -6,7 +6,7 @@ router.get('/google', loginController.loginWithGoogle);
 router.get('/google/callback', loginController.handleGoogleCallback);
 router.get('/google/token', loginController.getTokenFromSession);
 router.post('/login', loginController.loginUser);
-router.post('/me', loginController.validateLoginUser);
+router.get('/me', loginController.validateLoginUser);
 router.post('/logout', loginController.logoutUser);
 
 module.exports = router;

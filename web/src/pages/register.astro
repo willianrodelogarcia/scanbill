@@ -74,7 +74,7 @@ export const prerender = false;
     async function checkIfLoggedInWithGoogle() {
       try {
         const res = await fetch(`${api_url}/auth/me`, {
-          method: 'POST',
+          method: 'GET',
           credentials: 'include',
         });
         const data = await res.json();
