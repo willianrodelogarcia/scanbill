@@ -6,6 +6,7 @@ const {
     JWT_SECRETS: { jwtSecret, jwtExpiry },
     SECURE_HTTPS,
     urls: { frontend_url },
+    isProduction,
   },
 } = require('../config');
 const { google } = require('googleapis');
@@ -56,6 +57,7 @@ const loginWithGoogle = async (req, res) => {
 
 const handleGoogleCallback = async (req, res) => {
   const { code } = req.query;
+  let sessionId;
 
   if (!code) {
     return res.status(400).json({ error: 'Authorization code not provided' });
@@ -64,12 +66,36 @@ const handleGoogleCallback = async (req, res) => {
   const { data, tokens } = await getAccessToken(code);
 
   let user = await userService.findOneGoogle({ email: data.email });
+
+  if (user.sessionId) {
+    sessionId = user.sessionId;
+  } else {
+    sessionId = req.sessionID;
+    await sessionService.deleteSessionById(user._id);
+
+    await sessionService.createSession({
+      sessionId,
+      session: {
+        userId: user._id,
+        tokens: {
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+          scope: tokens.scope,
+          token_type: tokens.token_type,
+          expiry_date: tokens.expiry_date,
+        },
+      },
+    });
+    await userService.addSessionIdToUser(user._id, sessionId);
+  }
+
   if (!user) {
     user = await userService.createUser({
       userName: data.name,
       email: data.email,
       googleId: data.id,
       password: null,
+      sessionId: sessionId,
       google: {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
@@ -84,6 +110,7 @@ const handleGoogleCallback = async (req, res) => {
       googleId: data.id,
       userName: data.name,
       email: data.email,
+      sessionId: sessionId,
       google: {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
@@ -95,18 +122,15 @@ const handleGoogleCallback = async (req, res) => {
     });
   }
 
-  await sessionService.deleteSessionById(user._id);
-
-  req.session.tokens = tokens;
-  req.session.userId = user._id;
-  req.session.save(err => {
-    if (err) {
-      console.error('Error saving session:', err);
-      return res.status(500).send('Error saving session');
-    }
-
-    res.redirect(`${frontend_url}/`);
+  res.cookie('sessionId', sessionId, {
+    httpOnly: true,
+    path: '/',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge: 1000 * 60 * 60 * 24,
   });
+
+  res.redirect(`${frontend_url}/`);
 };
 
 const getTokenFromSession = (req, res) => {
@@ -118,7 +142,32 @@ const getTokenFromSession = (req, res) => {
 
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
+  let sessionId;
   const user = await userService.findOneUser(email);
+
+  if (user.sessionId) {
+    sessionId = user.sessionId;
+  } else {
+    sessionId = req.sessionID;
+    await sessionService.deleteSessionById(user._id);
+
+    await sessionService.createSession({
+      sessionId,
+      session: {
+        userId: user._id,
+        tokens: {
+          access_token: user.google?.access_token,
+          refresh_token: user.google?.refresh_token,
+          scope: user.google?.scope,
+          token_type: user.google?.token_type,
+          expiry_date: user.google?.expiry_date,
+        },
+      },
+    });
+
+    await userService.addSessionIdToUser(user._id, sessionId);
+  }
+
   if (!user || !user.password) {
     return res.status(404).json({ message: 'No user found' });
   }
@@ -126,16 +175,13 @@ const loginUser = async (req, res) => {
     return res.status(401).json({ message: 'Invalid password' });
   }
 
-  await sessionService.deleteSessionById(user._id);
+  res.cookie('sessionId', sessionId, {
+    httpOnly: true,
+    path: '/',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+  });
 
-  req.session.userId = user._id;
-  req.session.tokens = {
-    access_token: user.google?.access_token,
-    refresh_token: user.google?.refresh_token,
-    scope: user.google?.scope,
-    token_type: user.google?.token_type,
-    expiry_date: user.google?.expiry_date,
-  };
   res.json({
     message: 'Inicio de sesión exitoso',
     user: { name: user.name, email },
@@ -143,8 +189,20 @@ const loginUser = async (req, res) => {
 };
 
 const validateLoginUser = async (req, res) => {
+  let sessionId;
   try {
-    const sessionId = req.sessionID;
+    const userSession = await userService.findBySessionId(
+      req.cookies.sessionId,
+    );
+
+    if (!userSession.sessionId) {
+      return res
+        .status(401)
+        .json({ authenticated: false, message: 'User Session ID not found' });
+    }
+
+    sessionId = userSession.sessionId;
+
     const sessionRaw = await sessionService.findSessionById(sessionId);
     if (!sessionRaw || !sessionRaw.session) {
       return res
@@ -152,7 +210,7 @@ const validateLoginUser = async (req, res) => {
         .json({ authenticated: false, message: 'Session not found' });
     }
 
-    sessionData = sessionRaw.session;
+    const sessionData = sessionRaw.session;
     if (!sessionData || !sessionData.userId) {
       return res
         .status(401)

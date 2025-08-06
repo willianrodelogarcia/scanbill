@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, default: null },
   dt_created: { type: Date, default: Date.now },
   rol: { type: String, default: 'user' },
+  sessionId: { type: String, default: null },
   google: {
     access_token: { type: String, default: null },
     refresh_token: { type: String, default: null },

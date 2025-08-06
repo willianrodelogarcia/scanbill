@@ -78,6 +78,25 @@ const updateGoogleUser = async (id, data) => {
   );
 };
 
+const addSessionIdToUser = async (id, sessionId) => {
+  return await User.findOneAndUpdate(
+    { _id: id },
+    {
+      $set: {
+        sessionId: sessionId,
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
+};
+
+const findBySessionId = async sessionId => {
+  return await User.findOne({ sessionId });
+};
+
 module.exports = {
   createUser,
   findUser,
@@ -87,4 +106,6 @@ module.exports = {
   findOneGoogle,
   findAndUpdateByEmail,
   updateGoogleUser,
+  addSessionIdToUser,
+  findBySessionId,
 };
