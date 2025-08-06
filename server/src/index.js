@@ -6,7 +6,7 @@ const {
   loginGoogleRouter,
 } = require('./routes');
 const {
-  config: { urls },
+  config: { urls, isProduction },
 } = require('./config');
 const { credentials } = require('./config/credentials');
 const cookieParser = require('cookie-parser');
@@ -41,8 +41,8 @@ const start = async () => {
       }),
       cookie: {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
         maxAge: 1000 * 60 * 60 * 24,
       },
     }),
