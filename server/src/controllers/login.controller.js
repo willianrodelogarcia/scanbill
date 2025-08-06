@@ -144,6 +144,7 @@ const loginUser = async (req, res) => {
 
 const validateLoginUser = async (req, res) => {
   try {
+    console.log(req.sessionID);
     const sessionId = req.sessionID;
     const sessionRaw = await sessionService.findSessionById(sessionId);
     if (!sessionRaw || !sessionRaw.session) {
